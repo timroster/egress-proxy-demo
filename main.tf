@@ -203,7 +203,7 @@ module "cluster" {
 }
 
 module "ocp_proxy_module" {
-  depends_on = [ module.cluster ]
+  depends_on = [ module.cluster, module.zerotier-vnf, module.proxy ]
 
   source = "github.com/timroster/terraform-ocp-proxyconfig.git"
 
