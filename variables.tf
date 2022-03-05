@@ -36,6 +36,18 @@ variable "cluster_subnet_count" {
   default     = 1
 }
 
+variable "worker_count" {
+  type        = number
+  description = "The number of workers in the OpenShift cluster"
+  default     = 2
+}
+
+variable "worker_flavor" {
+  type        = string
+  description = "Profile to use for cluster workers"
+  default     = "bx2.4x16"
+}
+
 variable "ssh_key_name" {
   type        = string
   description = "Name of existing SSH key ID to inject into the virtual server instance"

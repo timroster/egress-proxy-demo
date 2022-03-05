@@ -28,6 +28,8 @@ Copy the `example.tfvars` to `terraform.tfvars` providing values for the followi
 * The ZeroTier network ID - can be pre-existing with workstations for users already enrolled
 * The ZeroTier network CIDR - virtual LAN addresses where all ZeroTier clients are assigned addresses
 
+The default deployment will use a single zone and subnet for each tier. The number of egress and cluster subnets can be updated as variables as can the number of cluster workers (default = 2) and flavor of the workers (default 4vcpu / 16GB).
+
 ## Usage
 
 After creating the `terraform.tfvars` file with variables required, including any changes to defaulted variables in `variables.tf` run the following commands on a system that has both the `kubectl` and `ibmcloud` applications:
