@@ -177,12 +177,36 @@ resource "null_resource" "open_zerotier" {
 
   provisioner "local-exec" {
     command = "sleep 180 && ping -c 60 $ZTVNF"
+    # command = "ping -c 1 $ZTVNF"
   
     environment = {
       ZTVNF = module.zerotier-vnf.private_ips[0]
     }
   }
 }
+
+## TODO - fix routing priority in ZT VNF module to support multizone until then:
+# add route to ZeroTier network through VSI if there are > 1 cluster subnet
+locals {
+    name = "${replace(module.vpc.name, "/[^a-zA-Z0-9_\\-\\.]/", "")}-zerotier"
+}
+
+data "ibm_is_vpc_default_routing_table" "vpc_route" {
+  vpc = module.vpc.id
+}
+
+resource "ibm_is_vpc_routing_table_route" "zt_ibm_is_vpc_routing_table_route" {
+  count = var.cluster_subnet_count > 1 ? (var.cluster_subnet_count - 1) : 0
+
+  vpc           = module.vpc.id
+  routing_table = data.ibm_is_vpc_default_routing_table.vpc_route.id
+  zone          = module.cluster_subnet.subnets[count.index+1].zone
+  name          = "${local.name}${format("%02s", count.index+1)}-ztgw"
+  destination   = var.zt_network_cidr
+  action        = "deliver"
+  next_hop      = module.zerotier-vnf.private_ips[0]
+}
+##
 
 
 module "cos" {
@@ -197,20 +221,23 @@ module "cluster" {
   # if there's some problem with zerotier networking don't incurr time penalty to provision cluster
   depends_on = [ null_resource.open_zerotier, null_resource.cleanup ]
     
-
-  source = "github.com/cloud-native-toolkit/terraform-ibm-ocp-vpc.git"
+  source = "github.com/timroster/terraform-ibm-ocp-vpc?ref=cluster-vars"
+  # source = "github.com/cloud-native-toolkit/terraform-ibm-ocp-vpc.git"
 
   resource_group_name     = var.resource_group_name
   region                  = var.region
   ibmcloud_api_key        = var.ibmcloud_api_key
-  worker_count            = 2
+  worker_count            = var.worker_count
+  flavor                  = var.worker_flavor
   name_prefix             = var.name_prefix
   vpc_name                = module.vpc.name
   vpc_subnet_count        = var.cluster_subnet_count
   vpc_subnets             = module.cluster_subnet.subnets
   cos_id                  = module.cos.id
+  force_delete_storage    = true
   login                   = true
   disable_public_endpoint = true
+  tags                    = var.tags
 }
 
 module "ocp_proxy_module" {
