@@ -7,15 +7,6 @@ data "ibm_is_ssh_key" "existing" {
   name = var.ssh_key_name
 }
 
-module "vpcssh" {
-  source = "github.com/cloud-native-toolkit/terraform-ibm-vpc-ssh.git"
-
-  resource_group_name = module.resource_group.name
-  name_prefix         = var.name_prefix
-  public_key          = ""
-  private_key         = ""
-}
-
 module "resource_group" {
   source = "github.com/cloud-native-toolkit/terraform-ibm-resource-group.git"
 
@@ -162,6 +153,7 @@ module "proxy" {
   vpc_subnet_count    = var.egress_subnet_count
   vpc_subnets         = module.egress_subnet.subnets
   allow_ssh_from      = var.zt_network_cidr
+  tags                = var.tags
 }
 
 module "zerotier-vnf" {
@@ -176,7 +168,22 @@ module "zerotier-vnf" {
   vpc_subnets       = module.transit_subnet.subnets
   create_public_ip  = true
   zt_network        = var.zt_network
+  tags              = var.tags
 }
+
+## Send some traffic over zerotier network to make sure routes discovered
+resource "null_resource" "open_zerotier" {
+  depends_on = [module.zerotier-vnf]
+
+  provisioner "local-exec" {
+    command = "sleep 180 && ping -c 60 $ZTVNF"
+  
+    environment = {
+      ZTVNF = module.zerotier-vnf.private_ips[0]
+    }
+  }
+}
+
 
 module "cos" {
   source = "github.com/cloud-native-toolkit/terraform-ibm-object-storage.git"
@@ -187,6 +194,10 @@ module "cos" {
 }
 
 module "cluster" {
+  # if there's some problem with zerotier networking don't incurr time penalty to provision cluster
+  depends_on = [ null_resource.open_zerotier, null_resource.cleanup ]
+    
+
   source = "github.com/cloud-native-toolkit/terraform-ibm-ocp-vpc.git"
 
   resource_group_name     = var.resource_group_name
@@ -218,4 +229,14 @@ module "ocp_proxy_module" {
 
 output "proxy_endpoint" {
   value = module.proxy.proxy_endpoint
+}
+
+## clean out some bits left by cluster resource provision
+resource "null_resource" "cleanup" {
+
+  provisioner "local-exec" {
+  when = destroy
+    command = "rm -rf .kube .tmp bin2"
+  }
+
 }
