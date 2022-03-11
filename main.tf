@@ -221,8 +221,7 @@ module "cluster" {
   # if there's some problem with zerotier networking don't incurr time penalty to provision cluster
   depends_on = [ null_resource.open_zerotier, null_resource.cleanup ]
     
-  source = "github.com/timroster/terraform-ibm-ocp-vpc?ref=cluster-vars"
-  # source = "github.com/cloud-native-toolkit/terraform-ibm-ocp-vpc.git"
+  source = "github.com/cloud-native-toolkit/terraform-ibm-ocp-vpc.git"
 
   resource_group_name     = var.resource_group_name
   region                  = var.region
