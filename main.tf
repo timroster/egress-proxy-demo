@@ -248,7 +248,7 @@ module "cluster" {
 module "ocp_proxy_module" {
   depends_on = [ module.cluster, module.zerotier-vnf, module.proxy ]
 
-  source = "github.com/timroster/terraform-ocp-proxyconfig.git?ref=noproxy-format"
+  source = "github.com/timroster/terraform-ocp-proxyconfig.git"
 
   ibmcloud_api_key    = var.ibmcloud_api_key
   resource_group_name = module.resource_group.name
