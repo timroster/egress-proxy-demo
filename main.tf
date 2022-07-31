@@ -11,7 +11,7 @@ module "resource_group" {
   source = "github.com/cloud-native-toolkit/terraform-ibm-resource-group.git"
 
   resource_group_name = var.resource_group_name
-  provision           = false
+  ibmcloud_api_key    = var.ibmcloud_api_key
 }
 
 module "vpc" {
@@ -20,6 +20,7 @@ module "vpc" {
   resource_group_name = module.resource_group.name
   region              = var.region
   name_prefix         = var.name_prefix
+  tags                = var.tags
 }
 
 module "gateways" {
@@ -28,6 +29,7 @@ module "gateways" {
   resource_group_id = module.resource_group.id
   region            = var.region
   vpc_name          = module.vpc.name
+  tags              = var.tags
   provision         = true
 }
 
@@ -40,6 +42,7 @@ module "transit_subnet" {
   region              = var.region
   label               = "transit"
   provision           = true
+  tags                = var.tags
   acl_rules = [{
     name        = "inbound-zt",
     action      = "allow",
@@ -127,6 +130,7 @@ module "egress_subnet" {
   region              = var.region
   label               = "egress"
   provision           = true
+  tags                = var.tags
 }
 
 module "cluster_subnet" {
@@ -140,10 +144,11 @@ module "cluster_subnet" {
   region              = var.region
   label               = "cluster"
   provision           = true
+  tags                = var.tags
 }
 
 module "proxy" {   
-  source = "github.com/timroster/terraform-vsi-proxy.git"
+  source = "github.com/cloud-native-toolkit/terraform-ibm-vsi-proxy.git"
 
   resource_group_name = var.resource_group_name
   region              = var.region
@@ -227,6 +232,7 @@ module "cluster" {
   region                  = var.region
   ibmcloud_api_key        = var.ibmcloud_api_key
   worker_count            = var.worker_count
+  ocp_version             = var.ocp_version
   flavor                  = var.worker_flavor
   name_prefix             = var.name_prefix
   vpc_name                = module.vpc.name
@@ -242,7 +248,7 @@ module "cluster" {
 module "ocp_proxy_module" {
   depends_on = [ module.cluster, module.zerotier-vnf, module.proxy ]
 
-  source = "github.com/timroster/terraform-ocp-proxyconfig.git"
+  source = "github.com/timroster/terraform-ocp-proxyconfig.git?ref=noproxy-format"
 
   ibmcloud_api_key    = var.ibmcloud_api_key
   resource_group_name = module.resource_group.name
@@ -250,6 +256,7 @@ module "ocp_proxy_module" {
   proxy_endpoint      = module.proxy.proxy_endpoint
   cluster_config_file = module.cluster.platform.kubeconfig
   cluster_name        = module.cluster.name
+  ocp_version         = var.ocp_version
   roks_cluster        = true
 }
 

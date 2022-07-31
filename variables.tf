@@ -48,6 +48,12 @@ variable "worker_flavor" {
   default     = "bx2.4x16"
 }
 
+variable "ocp_version" {
+  type        = string
+  description = "The version of the OpenShift cluster that should be provisioned (format 4.x)"
+  default     = "4.8"
+}
+
 variable "ssh_key_name" {
   type        = string
   description = "Name of existing SSH key ID to inject into the virtual server instance"
